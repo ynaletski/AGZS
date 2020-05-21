@@ -1,5 +1,5 @@
 SET PATH=C:\TC\BIN;C:\TC\INCLUDE;C:\PE2;
-rem dos_win dos_win.c dos_winw.c
-rem dos_win AVT_CTRL.C AVT_CTRw.C
+dos_win dos_win.c dos_winw.c
+dos_win AVT_CTRL.C AVT_CTRw.C
 tcc -ml -M -Ic:\tc\include -Lc:\tc\lib AGZS.C MOD1.C MOD2.C 7188xal.lib > 1.RPT
 del *.obj

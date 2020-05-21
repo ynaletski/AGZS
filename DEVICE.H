@@ -8,6 +8,6 @@
 //#define RTU_ComSK
 #define RTU_Lnk
 
-//#define MMI_NEW
-#define MMI_ICP
+#define MMI_NEW
+//#define MMI_ICP
 
