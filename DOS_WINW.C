@@ -1,4 +1,7 @@
 
+//27.05.2020 YN --\\//--
+int flag_calc=0;
+//27.05.2020 YN --//\\--
 
 #if defined(MMI_ICP)
 
@@ -137,12 +140,12 @@ void f_paged0()
 
     MoveToXY(0,9);
     MmiPrintf(" Резервуар1 : ");
-
          if(Tank_nn < 2) return;
+
     MoveToXY(0,11);
     MmiPrintf(" Резервуар2 : ");
-
          if(Tank_nn < 3) return;
+
     MoveToXY(0,13);
     MmiPrintf(" Резервуар3 : ");
 
@@ -4520,6 +4523,7 @@ m_m3_4:
             MmiGotoxy(0,4);    MmiPuts("1  Версия программн.обеспеч.");
             MmiGotoxy(0,6);    MmiPuts("2  Поиск ICP/RTU модулей");
             MmiGotoxy(0,8);    MmiPuts("3  Список найденных модулей");
+            MmiGotoxy(0,10);   MmiPuts("4  Проверка расчета объема фаз");
 
 #endif
 
@@ -4589,19 +4593,67 @@ m_m3_6:
        }
        else if(key== '1') // 8 Версия sw
        {
-
-         SetDisplayPage(EmptPage);
-         f_clr_scr_MMI();
-
-      MmiGotoxy(0,0);   MmiPrintf("   VER %s",sw_ver);
-      MmiGotoxy(0,2);   MmiPrintf("   MD5 counting ...");
- f_d_ESC();
-         tm_md=TimeStamp;
-         sw_mmi=271;
-         break;
-
+          SetDisplayPage(EmptPage);
+          f_clr_scr_MMI();
+          MmiGotoxy(0,0);   MmiPrintf("   VER %s",sw_ver);
+          MmiGotoxy(0,2);   MmiPrintf("   MD5 counting ...");
+          f_d_ESC();
+          tm_md=TimeStamp;
+          sw_mmi=271;
+          break;
        }
+//27.05.2020 YN --\\//--
+       else if(key== '4') // 8 Версия sw
+       {
+m_m4:         
+          SetDisplayPage(EmptPage);
+          f_clr_scr_MMI();
+          MmiGotoxy(0,0);    MmiPrintf("Проверка расчета объема фаз");
 
+          f_count_tank_ver_calc();
+
+          MmiGotoxy(0,2);    MmiPrintf("1.Объем р-ра: ");
+          MmiGotoxy(13, 2);     MmiPrintf(" %8.1f л",s_CALC.VolTank);
+
+          MmiGotoxy(0,3);    MmiPrintf("2.Объем ж.ф.: ");
+          MmiGotoxy(13, 3);     MmiPrintf(" %8.1f л",s_CALC.VolLiqPhase);
+
+          MmiGotoxy(0,4);    MmiPrintf("3.Темп. ж.ф.: ");
+          MmiGotoxy(13, 4);     MmiPrintf(" %8.1f град.C",s_CALC.TempLiqPhase);
+
+          MmiGotoxy(0,5);    MmiPrintf("4.Темп. п.ф.: ");
+          MmiGotoxy(13, 5);     MmiPrintf(" %8.1f град.C",s_CALC.TempGasPhase);
+
+          MmiGotoxy(0,6);    MmiPrintf("5.Плотн.ж.ф.: ");
+          MmiGotoxy(13, 6);     MmiPrintf(" %8.1f кг/м3",s_CALC.DensLiqPhase);
+
+          MmiGotoxy(0,7);    MmiPrintf("6.Давл. р-ра: ");
+          MmiGotoxy(13, 7);     MmiPrintf(" %8.1f МПа",s_CALC.PressTank);
+
+          MmiGotoxy(0,9);    MmiPrintf("Давл. н.пара: ");
+          MmiGotoxy(13, 9);     MmiPrintf(" %8.1f МПа",s_CALC.PressGasPhase);
+
+          MmiGotoxy(0,10);    MmiPrintf("Плотн.пар.ф.:");
+          MmiGotoxy(13, 10);     MmiPrintf(" %8.1f кг/м3",s_CALC.DensGasPhase);
+
+          MmiGotoxy(0,11);   MmiPrintf("Объем пар.ф.:");
+          MmiGotoxy(13, 11);     MmiPrintf(" %8.1f л",s_CALC.VolGasPhase);
+
+          MmiGotoxy(0,12);   MmiPrintf("Масса пар.ф.:");
+          MmiGotoxy(13,12);     MmiPrintf(" %8.1f кг",s_CALC.MassGasPhase);
+
+          MmiGotoxy(0,13);   MmiPrintf("Масса ждк.ф.:");
+          MmiGotoxy(13,13);     MmiPrintf(" %8.1f кг",s_CALC.MassLiqPhase);
+
+          MmiGotoxy(0,14);   MmiPrintf("Масса общая :");
+          MmiGotoxy(13,14);     MmiPrintf(" %8.1f кг",(s_CALC.MassGasPhase+s_CALC.MassLiqPhase));
+
+          MmiGotoxy(0,15);      MmiPuts("                 ESC  Возврат ");
+          tm_md=TimeStamp;
+          sw_mmi=272;
+          break;
+       }
+//27.05.2020 YN --//\\--
 /*
        else if(key== '>') //  1  Показания расходомера
        {
@@ -5758,6 +5810,163 @@ else                          MmiPuts("включен");
            sw_mmi=180;
          }
          break;
+ /*========================================*/
+//27.05.2020 YN --\\//--
+     case 272:/* ожидание нажатия ESC,Enter */
+         if((key==ESC)||(key==ENTER)  )
+         {
+           goto m_m3_4;
+         }
+       if(key=='1')
+       {
+m_m4s_1:
+          MmiGotoxy(0,1);
+          SetDisplayPage(EmptPage); // ввод значения
+          f_clr_scr_MMI();
+          MmiPuts("Введите объем резервуара л: " );
+          k_mv_tmp=s_CALC.VolTank;
+          flag_calc=1;
+
+m_m4s_1_1:
+          MmiGotoxy(0,n_mmi_str_2);  MmiPuts("\"1...9,SHT-7\"-Ввод,\"SHT-4\"-Уд.");
+          MmiGotoxy(0,n_mmi_str_1);  MmiPuts("\"ESC - возврат");
+          if(flag_calc!=0)
+          {
+           sprintf( fst_str,"%8.3f",k_mv_tmp);
+           fst_n=9;
+          }
+          else
+          {
+           sprintf( fst_str,"%8.1f",k_mv_tmp);
+           fst_n=9;
+          }
+          sw_fst=1;
+          MmiGotoxy(10,3);
+          break;
+       }
+       if(key=='2')
+       {
+m_m4s_2:
+          MmiGotoxy(0,1);
+          SetDisplayPage(EmptPage); // ввод значения
+          f_clr_scr_MMI();
+          MmiPuts("Введите объем ждк.фазы л:" );
+          k_mv_tmp=s_CALC.VolLiqPhase;
+          flag_calc=0;
+          goto m_m4s_1_1;
+       }
+       if(key=='3')
+       {
+m_m4s_3:
+          MmiGotoxy(0,1);
+          SetDisplayPage(EmptPage); // ввод значения
+          f_clr_scr_MMI();
+          MmiPuts("Введите темп.ждк.фазы С:" );
+          k_mv_tmp=s_CALC.TempLiqPhase;
+          flag_calc=2;
+          goto m_m4s_1_1;
+       }
+       if(key=='4')
+       {
+m_m4s_4:
+          MmiGotoxy(0,1);
+          SetDisplayPage(EmptPage); // ввод значения
+          f_clr_scr_MMI();
+          MmiPuts("Введите темп.пар.фазы С:" );
+          k_mv_tmp=s_CALC.TempGasPhase;
+          flag_calc=3;
+          goto m_m4s_1_1;
+       }
+       if(key=='5')
+       {
+m_m4s_5:
+          MmiGotoxy(0,1);
+          SetDisplayPage(EmptPage); // ввод значения
+          f_clr_scr_MMI();
+          MmiPuts("Введите плотн.ждк.фазы кг/м3:" );
+          k_mv_tmp=s_CALC.DensLiqPhase;
+          flag_calc=4;
+          goto m_m4s_1_1;
+       }
+       if(key=='6')
+       {
+m_m4s_6:
+          MmiGotoxy(0,1);
+          SetDisplayPage(EmptPage); // ввод значения
+          f_clr_scr_MMI();
+          MmiPuts("Введите давл. в рез-ре МПа:" );
+          k_mv_tmp=s_CALC.PressTank;
+          flag_calc=5;
+          goto m_m4s_1_1;
+       }
+       else if(key==DATA)
+        {
+          sscanf(fst_str,"%f",&k_mv_tmp);
+
+         if(flag_calc==1)
+         {
+            if((k_mv_tmp<1000)||(k_mv_tmp>20000.) )
+                goto m_m4s_1;
+         }
+         else if (flag_calc==0)
+         {
+          if((k_mv_tmp<999)||(k_mv_tmp>19999.) )
+                goto m_m4s_2;
+         }
+         else if (flag_calc==2)
+         {
+           if((k_mv_tmp<-50)||(k_mv_tmp>50.) )
+                goto m_m4s_3;
+         }
+         else if (flag_calc==3)
+         {
+            if((k_mv_tmp<-50)||(k_mv_tmp>50) )
+                goto m_m4s_4;
+         }
+         else if (flag_calc==4)
+         {
+            if((k_mv_tmp<1)||(k_mv_tmp>700) )
+                goto m_m4s_5;
+         }
+         else if (flag_calc==5)
+         {
+            if((k_mv_tmp<0.01)||(k_mv_tmp>10.) )
+                goto m_m4s_6;
+         }
+
+      // введенное значение в k_mv_tmp
+          if(flag_calc==1)
+          {
+           s_CALC.VolTank= k_mv_tmp;
+          }
+          else if (flag_calc==0)
+          {
+           s_CALC.VolLiqPhase= k_mv_tmp;
+          }
+          else if (flag_calc==2)
+          {
+           s_CALC.TempLiqPhase= k_mv_tmp;
+          }  
+          else if (flag_calc==3)
+          {
+           s_CALC.TempGasPhase= k_mv_tmp;
+          }               
+          else if (flag_calc==4)
+          {
+           s_CALC.DensLiqPhase= k_mv_tmp;
+          }        
+          else if (flag_calc==5)
+          {
+           s_CALC.PressTank= k_mv_tmp;
+          }     
+          goto m_m4;
+        }
+       else if(key==DATA_ESC)
+        {
+          goto m_m4;
+        }
+         break;
+//27.05.2020 YN --//\\--
  /*========================================*/
     case 200: //  2  Прием  СУГ
        if((key==ESC)||(key==ENTER))    /* переход в меню */

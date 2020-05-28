@@ -1,0 +1,2837 @@
+
+
+12 Nov 2009
+ mvd.c
+
+void  f_flow_chk()
+
+   Изменен контроль прерывания потока. Не по идеальному (экстраполированному),
+ а по значению без экстраполяции
+
+
+14 Nov 2009
+ mvd.c
+void f_gun()
+   добавлено
+      if( (flag_nal==0) && ((p1_state & End_dlvr)==0 )  );
+      else return;
+
+pmlan.c
+int f_intr_pmp1()
+
+ m_start:
+
+ добавлено
+     if( (modf & pmp1_dlvr_bit) || ( p1_state & End_dlvr))
+          goto m_wrg;
+
+-------------------------
+
+24 Dec 2010
+
+dos_win.c
+
+    case 120:  // Основное меню
+
+       if((key==ESC)||(key==ENTER))    /* переход в меню */
+       {
+           sw_mmi=0;
+           SetDisplayPage(ZeroPage);
+           f_clr_scr_MMI();
+           f_prn_begin();
+           break;
+       }
+       else if((key== '1') &&  (CMD_IN != CMD_DIS_RCV )  )   // 1  Прием  СУГ
+       {
+
+==> добавлено      Reg_State  &=  ~( DEN_fin | RCV_fin);
+
+то же
+       else if((key== '2') &&  (CMD_IN != CMD_DIS_RCV ) )   // 2  Измерение плотности
+       {
+
+==> добавлено   Reg_State  &=  ~( DEN_fin | RCV_fin);
+
+
+-------------------------
+29 Dec 2010
+avt_ctrl.h
+was
+#define C_DNS  msk_int[num_in4]
+
+now
+#define C_DNS  msk_int[num_out4]
+
+MVD.C
+void f_init_MVD(int ii)
+
+was
+
+    case 53:
+    if( f_timer(0L,TimeMVD_Init ) )
+       flag_mvd_fst[ii] = 0;
+    else
+//    if(f_get_icp_error(&MVD[ii]))
+        flag_mvd_fst[ii] = 1;
+
+     MVD_fl[ii]++;
+
+     case 54:
+     if(flag_mvd_fst[ii])
+
+now
+
+    case 53:
+    if( f_timer(0L,TimeMVD_Init ) )
+       flag_mvd_fst[ii] = 0;
+    else
+//    if(f_get_icp_error(&MVD[ii]))
+        flag_mvd_fst[ii] = 1;
+
+     MVD_fl[ii]++;
+
+     case 54:
+     if(flag_mvd_fst[ii])
+
+
+TSD_GLB.C
+
+void f_print_TSD(int ii)
+was
+   if( Reg_State & ( DEN_fin | RCV_fin) )
+       ftmp=Temp_Result;
+   else
+       ftmp=s_MVD[0].Temp;
+
+     if( ftmp != TSD_val_c[ii][1])
+     {
+      TSD_val_c[ii][1]=ftmp;
+      f_prep_TSD(2,TsdBuf[ii][1],ftmp);
+
+now
+
+   if( Reg_State & ( DEN_fin | RCV_fin) )
+       ftmp=Temp_Result;
+   else
+       ftmp=s_MVD[0].Temp;
+
+     if( ftmp != TSD_val_c[ii][1])
+     {
+      TSD_val_c[ii][1]=ftmp;
+      flag_minus=1;
+      f_prep_TSD(2,TsdBuf[ii][1],ftmp);
+
+added
+int flag_minus=0;
+----
+
+void  f_prep_TSD(int dot,char *buf,float f_value)
+
+was
+  if( f_value< 0)
+  {
+m_err:
+   strcpy(buf,buf_space);
+   goto m_end;
+  }
+  if(itmp>3)
+  {
+
+now
+  if(( f_value< 0) && (flag_minus==0))
+  {
+m_err:
+   strcpy(buf,buf_space);
+   goto m_end;
+  }
+flag_minus=0;
+  if(itmp>3)
+  {
+
+
+-------------------------
+02 Jan 2011
+добавлено
+arch.h
+#define evt_dn_get            92
+
+arch.c
+
+   case evt_dn_get:
+
+    s_arch->u.fill.VolT       = s_DGM[0].DensReal;
+    s_arch->u.fill.Amount     = s_DGM[0].TempReal;
+    s_arch->u.fill.UnitPrice  = s_DGM[1].DensReal;
+    s_arch->u.fill.Density    = s_DGM[1].TempReal;
+    s_arch->u.fill.Temp       = Tank_n;
+    break;
+
+
+lin.c
+was:
+   m_rd_Slot2:
+        f_inp_Lin(ii,&LIn_Dat2[0],LInd_max2);
+        if(Tank1F & 0x1)
+         {
+           s_DGM[0].DensReal =New_Dens1 ;
+           s_DGM[0].TempReal =New_Temp1 ;
+         }
+        if(Tank1F & 0x2)
+         {
+           s_DGM[1].DensReal = New_Dens2 ;
+           s_DGM[1].TempReal = New_Temp2 ;
+         }
+
+         CMD_OUT=Short_OK+(Tank1F & 0x3);
+        break;
+----
+now:
+   m_rd_Slot2:
+        f_inp_Lin(ii,&LIn_Dat2[0],LInd_max2);
+        if(Tank1F & 0x1)
+         {
+           s_DGM[0].DensReal =New_Dens1 ;
+           s_DGM[0].TempReal =New_Temp1 ;
+         }
+        if(Tank1F & 0x2)
+         {
+           s_DGM[1].DensReal = New_Dens2 ;
+           s_DGM[1].TempReal = New_Temp2 ;
+         }
+        if(Tank1F & 0x3)
+         {
+           Tank_n=Tank1F;
+           f_wr_evt(evt_dn_get);
+         }
+
+         CMD_OUT=Short_OK+(Tank1F & 0x3);
+        break;
+-------------
+was:
+      case  9: // подтверждение чтения данных результата изм.плотности в резервуаре 1
+             if((Reg_State & DEN_fin)  && (Tank_n==0))
+             {
+               Reg_State &= ~DEN_fin;
+               CMD_OUT=CMD_IN;
+               s_DGM[0].DensReal=Dens_Result  ;
+               s_DGM[0].TempReal=Temp_Result  ;
+             }
+             else  goto err_cmd;
+             break;
+      case 10: // подтверждение чтения данных результата изм.плотности в резервуаре 2
+             if((Reg_State & DEN_fin)  && (Tank_n==1))
+             {
+               Reg_State &= ~DEN_fin;
+               CMD_OUT=CMD_IN;
+               s_DGM[1].DensReal=Dens_Result  ;
+               s_DGM[1].TempReal=Temp_Result  ;
+             }
+             else  goto err_cmd;
+             break;
+-----
+now:
+
+      case  9: // подтверждение чтения данных результата изм.плотности в резервуаре 1
+             if((Reg_State & DEN_fin)  && (Tank_n==0))
+             {
+               Reg_State &= ~DEN_fin;
+               CMD_OUT=CMD_IN;
+               s_DGM[0].DensReal=Dens_Result  ;
+               s_DGM[0].TempReal=Temp_Result  ;
+
+               Tank_n=0;
+               f_wr_evt(evt_dn_get);
+             }
+             else  goto err_cmd;
+             break;
+      case 10: // подтверждение чтения данных результата изм.плотности в резервуаре 2
+             if((Reg_State & DEN_fin)  && (Tank_n==1))
+             {
+               Reg_State &= ~DEN_fin;
+               CMD_OUT=CMD_IN;
+               s_DGM[1].DensReal=Dens_Result  ;
+               s_DGM[1].TempReal=Temp_Result  ;
+               Tank_n=1;
+               f_wr_evt(evt_dn_get);
+             }
+             else  goto err_cmd;
+             break;
+
+
+--------------
+dos_win.c
+was:
+    case 212: // Подтверждение ввода данных измерения
+       {
+         if(key==ESC)    // переход в меню
+         {
+           goto main_menu;
+         }
+         else if(key=='1')  // принять данные
+         {
+
+           s_DGM[Tank_n].DensReal=Dens_Result  ;
+           s_DGM[Tank_n].TempReal=Temp_Result  ;
+
+           MmiGotoxy(0,5); MmiPuts(" === Данные введены ===");
+           MmiGotoxy(0,6); MmiPuts(str_empty);
+           f_d_ESC();
+
+now:
+
+    case 212: // Подтверждение ввода данных измерения
+       {
+         if(key==ESC)    // переход в меню
+         {
+           goto main_menu;
+         }
+         else if(key=='1')  // принять данные
+         {
+
+           s_DGM[Tank_n].DensReal=Dens_Result  ;
+           s_DGM[Tank_n].TempReal=Temp_Result  ;
+
+           f_wr_evt(evt_dn_get);
+
+           MmiGotoxy(0,5); MmiPuts(" === Данные введены ===");
+           MmiGotoxy(0,6); MmiPuts(str_empty);
+           f_d_ESC();
+
+
+====================================
+  03 Jan 2011
+  pmlan.c
+int f_intr_pmp1()
+
+  was:
+
+         else
+         {  // (vol_f == 0)
+           flag_ACK_NAK=ACK;
+           flag_SEND=0;
+           f_stor_pmp(M_WR,(char *)&flag_ACK_NAK,1);
+           (*ff_putch[ComPortPmp1])(flag_ACK_NAK);
+           f_wr_evt(evt_start_f);
+           summ_v=0;
+           return;
+         }
+         goto out_ack;
+        }
+//---------------------------------
+        if  (intrpr.wrd[0]=='O')
+        {   //'O ' Fractional credit sending message
+
+  now:
+
+         else
+         {  // (vol_f == 0)
+           flag_ACK_NAK=ACK;
+           flag_SEND=0;
+           f_stor_pmp(M_WR,(char *)&flag_ACK_NAK,1);
+           (*ff_putch[ComPortPmp1])(flag_ACK_NAK);
+     //    f_wr_evt(evt_start_f);
+           summ_v=0;
+           return;
+         }
+         goto out_ack;
+        }
+//---------------------------------
+        if  (intrpr.wrd[0]=='O')
+        {   //'O ' Fractional credit sending message
+
+
+====================================
+
+was:
+        if  (intrpr.wrd[0]=='C')
+        {   //'C '"C"  Counts request
+
+            buf_out_pmp1[0]=STX;
+
+
+now :
+        if  (intrpr.wrd[0]=='C')
+        {   //'C '"C"  Counts request
+
+           if (p1_state & End_dlvr)
+           { // отпуск завершен
+
+             if( f_timer(t_end_dlvr,t_wt_e_dlvr )!=0 )
+                 goto mmp;
+           }
+
+            buf_out_pmp1[0]=STX;
+
+===============
+
+  06 Jan 2011
+
+  dos_win.c
+void f_prn_proc()
+was:
+          if(PageD==0)
+          {
+              MmiGotoxy(0,4);  MmiPrintf("Ж:%5.0fкг/ч|%5.1fкг/м3|%5.1f C",s_MVD[0].FlowM,s_MVD[0].Dens,s_MVD[0].Temp);
+              MmiGotoxy(0,5);  MmiPrintf("Г:%5.0fкг/ч|%5.1fкг/м3|%5.1f C",s_MVD[1].FlowM,s_MVD[1].Dens,s_MVD[1].Temp);
+          }
+now:
+          if(PageD==0)
+          {
+              MmiGotoxy(0,4);  MmiPrintf("Ж:%5.0fкг/ч|%5.1fкг/м3|%5.1f C",s_MVD[0].FlowM,s_MVD[0].Dens,s_MVD[0].Temp);
+              MmiGotoxy(0,5);  MmiPrintf("П:%5.0fкг/ч|%5.1fкг/м3|%5.1f C",s_MVD[1].FlowM,s_MVD[1].Dens,s_MVD[1].Temp);
+          }
+---------
+TSD_GLB.C
+void f_print_TSD(int ii)
+
+was:
+ if( FL_err  == 0) && ( flag_wdp == 0))
+ {
+
+now:
+
+ if( FL_err  == 0)
+ {
+
+ if(
+    ( flag_wdp == 0) ||
+    ( (sw_mmi >= 209) && (sw_mmi <= 212) ) ||
+
+    ((sw_mmi == 200) || (sw_mmi == 203))
+
+   ) ;
+ else goto m_err;
+
+...
+
+ }
+  else   // (FL_err != 0)
+  {
+//    f_chk_new_TSD(0);
+m_err:
+
+    if( f_timer(Time_err_blink,Blink_time) == 0) return;
+-----------
+08 Jan 2001
+
+command 'DNO'
+
+DNO p1 p2 p3 p4 p5
+
+    p1  мс, допустимое время закрывания клапана "плотность"
+    p2  мс, время антидребезга при закрывании клапана "плотность"
+    p3  кг/ч  - расход для проверки закрывания клапана "плотность" после
+                его открывания ( при измерении плотности и прокачке) (40)
+    p4  кг/ч  - расход для проверки закрывания клапана "плотность" после
+                окончания отпуска (100)
+    p5  кг/ч  - расход для проверки закрытого сост. клапана "плотность" перед
+                открыванием клапанов отсекания дозы (100)
+
+===============
+
+  09 Jan 2011
+
+p5.DSC - flow_min_c
+
+  mvd.c
+void f_MVD_cor()
+
+Добавлено
+float flow_min_c=0.000001; // л/мс , минимальный расход для вычисления коррекции отсекания дозы
+
+was:
+
+m_end:
+          ff_serv_N=NULL;
+          return;
+     }
+     if(flag_fill_ok != 1) goto m_end;
+     if(flag_flch+flag_gun+WD_PMP_Fl+flag_StopPmp1) goto m_end;
+
+     if(fct_offs != 0)
+       CL_val[1] += fct_offs*offs_cor;
+
+now:
+
+m_end:
+          ff_serv_N=NULL;
+          return;
+     }
+     if(flag_fill_ok != 1) goto m_end;
+     if(FL_err)   goto m_end;
+     if(flag_flch+flag_gun+WD_PMP_Fl+flag_StopPmp1) goto m_end;
+     if(flow_mom < flow_min_c) goto m_end;
+
+     if(fct_offs != 0)
+       CL_val[1] += fct_offs*offs_cor;
+
+
+====================
+
+   20 Jan 2011
+
+pmlan.c
+
+
+int f_intr_pmp1()
+was:
+
+          if(FL_err)
+          {
+     m_wrg:
+//         flag_ACK_NAK=NAK;
+           flag_ACK_NAK=ACK;
+           flag_SEND=0;
+
+now:
+
+          if(FL_err)
+          {
+     m_wrg:
+           flag_ACK_NAK=NAK;
+//         flag_ACK_NAK=ACK;
+           flag_SEND=0;
+//-----------------------------
+
+was
+
+          if( ff_serv_N != NULL) goto m_wrg;
+          if( fl_GO != 0) goto m_wrg;
+
+          if(MVD[0].status & I7060[0].status);
+          else  if(t_ctrl==0)
+          {
+            flag_ACK_NAK=ACK;
+            flag_SEND=0;
+            f_stor_pmp(M_WR,(char *)&flag_ACK_NAK,1);
+            (*ff_putch[ComPortPmp1])(flag_ACK_NAK);
+                f_wr_evt(evt_no_dev);
+             return;
+          }
+
+          f_start_MVD();
+
+now
+
+          if( ff_serv_N != NULL) goto m_wrg;
+          if( fl_GO != 0) goto m_wrg;
+/*
+          if(MVD[0].status & I7060[0].status);
+          else  if(t_ctrl==0)
+          {
+            flag_ACK_NAK=ACK;
+            flag_SEND=0;
+            f_stor_pmp(M_WR,(char *)&flag_ACK_NAK,1);
+            (*ff_putch[ComPortPmp1])(flag_ACK_NAK);
+                f_wr_evt(evt_no_dev);
+             return;
+          }
+*/
+          f_start_MVD();
+
+
+//-----------------------------
+
+
+====================
+
+27 Jan 2011
+
+pmlan.c
+added:
+int fl_ok_pmp=1;
+
+was
+     m_wrg:
+           flag_ACK_NAK=NAK;
+//         flag_ACK_NAK=ACK;
+           flag_SEND=0;
+
+           f_stor_pmp(M_WR,(char *)&flag_ACK_NAK,1);
+
+           (*ff_putch[ComPortPmp1])(flag_ACK_NAK);
+
+            f_wr_evt(evt_wrong_start);
+            return;
+now
+
+     m_wrg:
+           flag_ACK_NAK=NAK;
+//         flag_ACK_NAK=ACK;
+           flag_SEND=0;
+
+           f_stor_pmp(M_WR,(char *)&flag_ACK_NAK,1);
+
+           (*ff_putch[ComPortPmp1])(flag_ACK_NAK);
+
+           if( fl_ok_pmp != 0)
+                  f_wr_evt(evt_wrong_start);
+           return;
+
+=======================================
+
+28 Jan 2011
+
+avt_ctrl.c
+f_sens()
+
+added
+
+    if(fl_GO)
+    {
+    if( (OUT_VAR & LV10) != 0 )
+     {
+      f_icp_errS(LVL_min);
+      flag_O4=0;
+      f_stop_cnt();
+     }
+    }
+
+pmlan.c
+
+        if  (intrpr.wrd[0]=='E')
+        {   //'E ' Credit sending message
+...
+added
+
+
+        if( (OUT_VAR & LV10) != 0 )
+        {
+          ICP_error[icp_lst_max] |= LVL_min;
+          f_set_pmp_err();
+          Modef |= pmp1_err_bit;
+          FL_err=1;
+          goto m_wrg;
+        }
+
+ Ввведен запрет формирования аварийных сигналов для резервуаров
+  с клавиатуры ВРФ.
+
+
+=======================================
+29 Jan 2011
+
+mvd.c
+ctrl_v2()
+
+was
+
+   if( (ftmp-k_vol*CL_T3 )<= 0)
+    {
+     flag_pool=0;
+     ltmp=TimeStamp+CL_T4;
+     I7060[0].time_stamp_pool=ltmp;
+     I7060[1].time_stamp_pool=ltmp;
+     I7017C[0].time_stamp_pool=ltmp;
+     LIn[0].time_stamp_pool=ltmp;
+     MMI.time_stamp_pool=ltmp;
+     WDOG[0].time_stamp_pool=ltmp;
+    }
+
+now
+
+   if( (ftmp-k_vol*CL_T3 )<= 0)
+    {
+     flag_pool=0;
+     ltmp=TimeStamp+CL_T4;
+     I7060[0].time_stamp_pool=ltmp;
+     I7060[1].time_stamp_pool=ltmp;
+     I7017C[0].time_stamp_pool=ltmp+CL_T4;
+     LIn[0].time_stamp_pool=ltmp;
+     MMI.time_stamp_pool=ltmp+CL_T4;
+//   WDOG[0].time_stamp_pool=ltmp;
+    }
+-----------------------
+изменено
+host.c
+
+IOD p1 p2 p3 p4;
+
+p1 - разреш. WD IO1
+p2 - разреш. WD IO2
+p3 - величина WD, IO1, 0.1 с
+p4 - величина WD, IO2, 0.1 с
+
+------------------------
+
+в 'FLS' добавлена инициализация порта
+
+dos_win.c
+
+добавлено
+
+после модификации Статус PUMALAN инициализация порта
+
+=======================================
+
+30 Jan 2011
+
+pmlan.c
+
+int f_intr_pmp1()
+ доюавлено, чтобы показания счетчика в процессе налива не превышали
+ значения отчета.
+was
+
+            buf_out_pmp1[3]=P_addr+'0';
+
+            sprintf(buf_tmp,"%05ld",(long int)(*vol_p * 100.+0.5) );
+            buf_out_pmp1[4]=buf_tmp[4];
+            buf_out_pmp1[5]=buf_tmp[3];
+            buf_out_pmp1[6]=buf_tmp[2];
+            buf_out_pmp1[7]=buf_tmp[1];
+            buf_out_pmp1[8]=buf_tmp[0];
+            sprintf(buf_tmp,"%06ld",(long int)(*amount_p+0.5) );
+            buf_out_pmp1[9]=buf_tmp[5];
+
+
+now
+            buf_out_pmp1[3]=P_addr+'0';
+
+            ftmp=*vol_p;
+            ftmp2=*amount_p;
+            ftmp1=-s_MVD[0].VolT;
+
+            if(Modef & pmp1_dlvr_bit)
+              if(ftmp > ftmp1)
+              {
+               ftmp=ftmp1;
+               ftmp2=ftmp * cost_v;
+              }
+
+//          sprintf(buf_tmp,"%05ld",(long int)(*vol_p * 100.+0.5) );
+            sprintf(buf_tmp,"%05ld",(long int)(ftmp * 100.+0.5) );
+            buf_out_pmp1[4]=buf_tmp[4];
+            buf_out_pmp1[5]=buf_tmp[3];
+            buf_out_pmp1[6]=buf_tmp[2];
+            buf_out_pmp1[7]=buf_tmp[1];
+            buf_out_pmp1[8]=buf_tmp[0];
+//          sprintf(buf_tmp,"%06ld",(long int)(*amount_p+0.5) );
+            sprintf(buf_tmp,"%06ld",(long int)(ftmp2+0.5) );
+            buf_out_pmp1[9]=buf_tmp[5];
+--------------------------------
+
+host.c
+
+в команде  'FLE' введено ограничение адреса
+
+в команде 'FLD' добавлено отображение текущего сегмента журнала
+
+avt_ctrl.c
+ Изменено выключение счета при приеме. Расходомеры останавливаются
+при выходе из режима.
+изменен
+void f_stop_cnt_rcv()
+добавлены
+void f_stop_cnt_rcvM()
+void f_stop_cnt_rcvB()
+
+Введено выключение насоса при приеме через LV90 (OUT7)
+mvd.c
+unsigned int OUT_VAR_a=0;
+
+avt_ctrl.c
+void f_out_var_a();
+
+void f_density()
+now:
+  if( f_timer(time_beg_fill,cl2_delay_off) ==0 )
+  { // запретить включение CL2 первые cl21_delay_off мс после начала наполнения
+//  i_dens &= ~OUT2 ;
+    time_chg_den=time_beg_fill-Tim_prb_plus ;
+    time_antd_m=time_chg_den;
+    time_antd_p=time_chg_den;
+    time_prb_plus=time_chg_den;
+    beg_flch=0;
+
+=======================================
+03 Feb 2011
+ Добавлено отображение по 'P' реального состояния устройств дискретного вывода
+
+ i7060.c
+ введена
+int OUT_VAR_c_r=0;
+ и ее заполнение при приеме
+
+ mvd.c
+void f_dsp_out()
+...
+   if(io_2 != OUT_VAR_c_r)
+   {
+    printf("\r\nOut_c= %04lx,%ld ms",(long int)(OUT_VAR_c_r) & 0xffff,TimeStamp-time_beg_fill);
+    io_2=OUT_VAR_c_r;
+   }
+...
+
+ добавлена запись трассировки отпуска в журнал при переливе
+
+ p3.ex -  допустимая ошибка для записи трассы в журнал.
+
+arch.h
+#define evt_deb               60
+
+ mvd.c
+float ex_p_d=0.10;
+
+void f_wr_dat_st();
+
+void  f_wr_deb();
+
+=====================================
+
+05 Feb 2011
+
+avt_ctrl.c
+
+int f_ctrl_rcv()
+was
+  if(flag_pool==1)
+   if( (ftmp-k_vol*CL_T3 )<= 0)
+    {
+     flag_pool=0;
+     ltmp=TimeStamp+CL_T4;
+     I7060[0].time_stamp_pool=ltmp;
+     I7060[1].time_stamp_pool=ltmp;
+     I7017C[0].time_stamp_pool=ltmp;
+     LIn[0].time_stamp_pool=ltmp;
+     MMI.time_stamp_pool=ltmp;
+     WDOG[0].time_stamp_pool=ltmp;
+    }
+now
+  if(flag_pool==1)
+   if( (ftmp-k_vol*CL_T3 )<= 0)
+    {
+     flag_pool=0;
+     ltmp=TimeStamp+CL_T4;
+//   I7060[0].time_stamp_pool=ltmp;
+//   I7060[1].time_stamp_pool=ltmp;
+     I7017C[0].time_stamp_pool=ltmp;
+     LIn[0].time_stamp_pool=ltmp;
+     MMI.time_stamp_pool=ltmp;
+//   WDOG[0].time_stamp_pool=ltmp;
+    }
+--------------------
+
+ добавлено останов счета по окончании приема (Stop totalizers),
+
+avt_ctrl.c
+
+
+ добавлено управление жидкой и паровой фазой при приеме,
+ возможность продолжения после остановки приема.
+
+
+=====================================
+
+06 Feb 2011
+ Добавлена запись Press при трассировке перелива
+ mvd.h,mvd.c,arch.c
+
+struct deb_str
+{
+long int time;
+unsigned  int out_var;
+unsigned  int out_var_c_r;
+float VolT ;
+float MassT;
+float FlowM;
+float P;
+};
+
+=================================
+09 Feb 2011
+
+  Введена запись трассировки при ошибке.
+mvd.c
+void f_MVD_cor()
+
+---------
+
+mvd.c
+void f_prep_MVD()
+добавлен анализ наличия потока до открывания клапанов
+
+   case 31:
+      // насос работает,все клапаны закрыты
+      // проверка состояния
+      if( f_timer(t_prep_MVD, Tim_Prep1 ) == 0 )
+       {
+         if( (s_MVD[0].Press - s_MVD[0].PressG) > PressLvl_on0 );
+         else
+          t_prep_MVD1=TimeStamp;
+
+         if( fabs(s_MVD[0].FlowM) < F_Dns_off) ;
+         else
+             t_prep_MVD1=TimeStamp;
+
+         if( f_timer(t_prep_MVD1, Tim_Prep_ND ) != 0 )
+         { // антидребезг прошел
+          i_CL_dens= 0;
+          t_prep_MVD=TimeStamp;
+          st_MVD_sw=3; // перейти к нормальному отпуску
+         }
+       }
+      else
+       {  // время начальной проверки вышло, жидкая фаза не стабильна
+          // открыть клапан 'Плотность' для прокачки
+         i_CL_dens= OUT4;
+         t_prep_MVD=TimeStamp;
+         t_prep_MVD1=TimeStamp;
+         st_MVD_sw=32;
+         break;
+       }
+       break;
+
+=================================
+10 Feb 2011
+
+lin.c
+
+void  f_LIn_interp()
+was
+      case 2: // останов процесса приема и измерения плотности
+
+             CMD_OUT=CMD_IN;
+             if(Reg_State & RCV_act )
+             {
+               sw_dlv_liq=13;
+               break;
+             }
+             else if(Reg_State & DEN_act )
+             {
+                sw_mmi=211;
+                sw_dns=12;
+                break;
+             }
+             break;
+          // else  goto err_cmd;
+
+now
+      case 2: // останов процесса приема и измерения плотности
+
+             CMD_OUT=CMD_IN;
+             if(Reg_State & RCV_act )
+             {
+               sw_dlv_liq=13;
+               break;
+             }
+             else if(Reg_State & DEN_act )
+             {
+                sw_mmi=211;
+//              sw_dns=12;
+                sw_dns=110;
+        MmiGotoxy(0,1); MmiPuts(list_avt[13]); // " Выключение потока жидкости "
+                break;
+             }
+             break;
+          // else  goto err_cmd;
+------------------------
+
+avt_ctrl.c
+
+не было записи результата измерения плотности по
+команде от host.
+
+int f_dens_m(int key)
+was
+   case  11:
+       f_set_o67();
+       if((key==ESC)||(key==ENTER)  )    // переход в меню
+       {
+         MmiGotoxy(0,1);    MmiPuts(list_avt[31]); // "     Нажата кнопка =ESC=      "
+         sw_dns=111;
+         break;
+
+         Dens_Result= s_MVD[0].Dens;
+         Temp_Result= s_MVD[0].Temp;
+         Out_off(C_DNS);
+         time_t_snd=TimeStamp;
+         time_t_NDB=TimeStamp;
+
+       }
+   //  if( ((i_LVL_c ^ i_LVL) & i_LVL) != 0)
+       if( (OUT_VAR & (LV90 | LV10)) != 0 )
+       {
+ // остановить измерение если появился сигнал LVL90 или LVL10
+           flagE_UZA=LVL_E;
+           flagS_UZA=1;
+           f_icp_errS(UZA_off);
+           goto m_err0;
+       }
+       i_LVL_c = i_LVL;
+       break;
+//-----------------------------
+    case 111:
+...
+
+now
+   case  11:
+       f_set_o67();
+       if((key==ESC)||(key==ENTER)  )    // переход в меню
+       {
+         MmiGotoxy(0,1);    MmiPuts(list_avt[31]); // "     Нажата кнопка =ESC=      "
+         sw_dns=110;
+         break;
+/*
+         Dens_Result= s_MVD[0].Dens;
+         Temp_Result= s_MVD[0].Temp;
+         Out_off(C_DNS);
+         time_t_snd=TimeStamp;
+         time_t_NDB=TimeStamp;
+*/
+       }
+   //  if( ((i_LVL_c ^ i_LVL) & i_LVL) != 0)
+       if( (OUT_VAR & (LV90 | LV10)) != 0 )
+       {
+ // остановить измерение если появился сигнал LVL90 или LVL10
+           flagE_UZA=LVL_E;
+           flagS_UZA=1;
+           f_icp_errS(UZA_off);
+           goto m_err0;
+       }
+       i_LVL_c = i_LVL;
+       break;
+//-----------------------------
+    case 110:
+
+         Dens_Result= s_MVD[0].Dens;
+         Temp_Result= s_MVD[0].Temp;
+         Out_off(C_DNS);
+         time_t_snd=TimeStamp;
+         time_t_NDB=TimeStamp;
+         sw_dns=111;
+         break;
+
+//-----------------------------
+    case 111:
+...
+-----------------------------
+
+avt_ctrl.c
+добавлено  запрещение контроля останова потока
+при отключенном приеме жидкой фазы
+
+
+//-----------------------------
+int f_rcv_liq(int key)
+...
+   case  12:
+       //  прием
+...
+ добавлено:
+
+    if( (Out_en_r & RCVL) == 0 )
+    { // запрещение контроля останова потока
+       flag_nstg=0;
+       time_stg_ctrl=TimeStamp;
+       time_stg_ctrl0=TimeStamp;
+    }
+    break;
+
+=====================================
+11 Feb 2011
+
+PMLAN.C
+void f_stor_pmp( char type,char *buf,int buf_n)
+закомментирован останов записи в буфер при изменении цены
+
+/* 11.02.11
+  if(cost_v != cost_v_c)
+  {
+    cost_v_c=cost_v;
+    flag_cst_chg=1;
+  }
+*/
+перенесено в конец:
+
+
+ if(flag_cst_chg)
+  if(cnt_ltch >= n_cnt_ltch) return;
+  else cnt_ltch++;
+
+последнее сообщение всегда записывается на последнее место,
+если запись в буфер остановлена, последняя запись постоянно обновляется.
+-----------------------
+
+ host.c
+
+ Введена команда передачи буфера обмена PMLAN
+
+ 'SPM' ; Передает последние 2048 записей
+
+===================================
+12 Feb 2011
+Добавлено отображение объема в резервуарах при приеме
+dos_win.c
+
+        MmiGotoxy(0,3);MmiPrintf("V1=%4.0fл  Резервуары  V2=%4.0fл",
+                                s_DGM[0].VolLiq,s_DGM[1].VolLiq);
+===================================
+13 Feb 2011
+ Добавлена запись показаний ГРК в журнал при старте и смене суток.
+
+#define evt_dsp_grk           57
+
+ изменено отображение журнала
+ 2/6 -/+ 5 записей
+ 3/7 -/+10 записей
+
+При старте отпуска через колонку дисплей отображает счетчики ГРК.
+
+mvd.c
+void f_prep_MVD()
+
+    case 0:  // Stop totalizers
+
+    ...
+
+добавлено:
+
+    if( (sw_mmi != 0) || (PageD !=0))
+     {
+            PageD=0;
+            sw_mmi=0;
+            sw_fst=0;
+            f_paged0();
+     }
+    break;
+
+--------------
+
+добавлена возможность изменения коррекции плотности
+
+
+===================================
+
+19 Feb 2011
+
+ Добавлена раздельная коррекция объема и массы для приема и отпуска
+
+ KM p1 p2 p3 p4;
+
+ p1 - корр.массы при отпуске
+ p2 - корр.объема при отпуске
+ p3 - корр.массы при приеме
+ p4 - корр.объема при приеме
+
+===================================
+20 Feb 2011
+  Добавлена запись в EEPROM при коррекции расхода
+ и модификация соответствующих параметров.
+===================================
+21 Feb 2011
+
+Введен отчет по массе в протоколе PUMALAN.
+
+mvd.c
+float MassT_id=0;
+float round_summ_m=0;
+float rnd_add_m=0;
+float rnd_lim_m=0.001; // kg
+
+pmlan.c
+
+                 buf_out_pmp1[8]=buf_tmp[0];
+     //          sprintf(buf_tmp,"%06ld",(long int)(*amount_p+0.5) );
+                 sprintf(buf_tmp,"%06ld",(long int)(MassT_id * 1000.+0.5) );
+                 buf_out_pmp1[9]=buf_tmp[5];
+
+host.c, команда 'rndm'
+
+struct dis_set  ds_rndm[3]=
+{
+/*----------------*/
+  &rnd_add_m,
+  -BIG_P,
+  BIG_P,
+  T_FLOAT,
+/*----------------*/
+  &rnd_lim_m,
+  0,
+  BIG_P,
+  T_FLOAT,
+/*----------------*/
+  &round_summ_m,
+  -BIG_P,
+  BIG_P,
+  T_FLOAT,
+/*----------------*/
+};
+
+===================================
+
+22 Feb 2011
+
+tsd_glb.c
+
+void f_print_TSD(int ii)
+
+   else if ((sw_mmi == 200) || (sw_mmi == 203))
+   {  // Прием от газовоза
+     fl_mtsd=1;
+     ftmp=fabs(MassT);
+     if( ftmp != TSD_val_c[ii][0])
+     {
+      TSD_val_c[ii][0]=ftmp;
+was
+//    f_prep_TSD(2,TsdBuf[ii][0],ftmp);
+now
+      f_prep_TSD(4,TsdBuf[ii][0],ftmp);
+
+      f_prep_StrG(ii,0);
+...
+
+was
+//    f_prep_TSD(2,TsdBuf[ii][1],ftmp);
+now
+      f_prep_TSD(4,TsdBuf[ii][1],ftmp);
+
+dos_win.c
+добавлено:
+
+     Reg_State  &=  ~(  RCV_fin | RCV_flch);
+
+lin.c
+void f_prep_tmp_out()
+
+ закомментировано:
+
+/*
+   if( Reg_State & RCV_fin)
+    {
+      MassT1_tmp = Rcv_Result1;
+      MassT2_tmp = Rcv_Result2;
+    }
+   else
+*/
+
+======================================
+23 Feb 2011
+ i7060.c
+ добавлено
+         else if(I7060[nn].channels == 8)
+         {
+//         sscanf(cb_COM[ii],">%2x%2x", &i7060_outc[nn],&i7060_inp[nn]);
+//         INP_VAR = i7060_inp[0];
+//         INP_VARi = INP_VAR ^ INP_inv;
+           sscanf(cb_COM[ii],">%2x%2x", &i7060_outc[nn],&i7060_inp[nn]);
+
+           itmp=i7060_outc[nn];
+
+           OUT_VAR_c_r &= ~msk8[nn];
+           OUT_VAR_c_r |= (itmp << n_sht8[nn]) & msk8[nn];
+...
+
+         else if(I7060[nn].channels == 16)
+         {
+           sscanf(cb_COM[ii],">%4x", &i7060_outc[nn]);
+
+           OUT_VAR_c_r=i7060_outc[0];
+...
+------------
+mvd.c
+добавлено
+
+long int time_debs=0;
+...
+ a_str->time=TimeStamp - time_debs;
+...
+          debs_ptr=0;
+          time_debs=TimeStamp;
+
+======================================
+25 Feb 2011
+
+Изменено сохранение Mass_kd,Vol_kd в EEPROM
+
+EEE.C
+добавлено
+
+struct eee_dat EE_kd[]=...
+struct eee_dat EE_grk[]=...
+struct eee_dat EE_flg[]=...
+int f_rd_EEE_kd( struct eee_dat *EE_D_ptr );
+int f_wrt_eee_kd( struct eee_dat *EE_D_ptr );
+
+ Изменено .
+mvd.c
+avt_ctrl.c
+
+
+ Можно использовать команду OEE для чтения и последующей загрузки
+EEPROM целиком.
+
+======================================
+04 Mar 2011
+pmlan.c
+was:
+            if(Modef & pmp1_dlvr_bit)
+            {
+              ftmp=*vol_p - rnd_lim-rnd_lim;
+              ftmp1=-s_MVD[0].VolT - rnd_lim-rnd_lim;
+              if(ftmp > ftmp1)
+              {
+               ftmp=ftmp1;
+              }
+              if(ftmp < 0) ftmp=0;
+              ftmp2=ftmp * cost_v;
+            }
+            else
+            {
+             ftmp=*vol_p;
+             ftmp2=*amount_p;
+            }
+now:
+
+            if( flag_end_dlvr != 0 )
+            {
+             ftmp=*vol_p;
+             ftmp2=*amount_p;
+            }
+            else
+            {
+              ftmp=*vol_p - ex_p - rnd_lim_m;
+              ftmp1=-s_MVD[0].VolT - ex_p - rnd_lim_m;
+              if(ftmp > ftmp1)
+              {
+               ftmp=ftmp1;
+              }
+              if(ftmp < 0) ftmp=0;
+              ftmp2=ftmp * cost_v;
+            }
+--------------------
+mvd.h
+
+was:
+#define deb_s_lgth  (10)
+
+now:
+#define deb_s_lgth  (15)
+
+--------------------
+
+ Введена запись в журнал отчета PUMALAN
+
+arch.h
+arch.c
+dos_win.c
+
+#define evt_deliv_rep         61
+
+--------------------
+05 Mar 2011
+
+pmlan.c
+
+was:
+        if  (intrpr.wrd[0]=='C')
+        {   //'C '"C"  Counts request
+
+           if (p1_state & End_dlvr)
+           { // отпуск завершен
+
+             if( f_timer(t_end_dlvr,t_wt_e_dlvr )!=0 )
+                 goto mmp;
+           }
+
+added:
+           else if(flag_fst_pmp1)
+           {
+            goto m_stat;
+           }
+           else if (p1_state & Dlvr_rqst)
+           goto m_dlvr_rq;
+
+
+--------------------
+mvd.c
+void f_density()
+
+was
+    if( ftmp < PressLvl_off0)
+    {
+          f_prb_minus();
+    }
+
+now
+    if( ftmp < PressLvl_off0)
+    {
+            f_prb_minus();
+            flag_flch=1;
+            f_stop_cnt(); // останов отпуска по переполнению бака
+    }
+--------------------
+13 Mar 2011
+
+mvd.c
+void f_density()
+
+was
+    if( ftmp < PressLvl_off0)
+    {
+            f_prb_minus();
+            flag_flch=1;
+            f_stop_cnt(); // останов отпуска по переполнению бака
+    }
+
+now
+--------------------
+    if( ftmp < PressLvl_off0)
+    {
+          f_prb_minus();
+         if(fabs(s_MVD[0].VolT) > 2.0)
+         {
+            flag_flch=1;
+            f_stop_cnt(); // останов отпуска по переполнению бака
+         }
+    }
+--------------
+
+pmlan.c
+
+added:
+int flag_repeat=0;
+
+was:
+
+        if  (intrpr.wrd[0]=='E')
+        {   //'E ' Credit sending message
+
+         _fmemcpy( buf_tmp,&intrpr.wrd[2],12L);
+         intrpr.wrd[12]=0;
+
+         if( (Modef & pmp1_dlvr_bit) || ( p1_state & End_dlvr))
+           goto m_wrg;
+
+now:
+
+...
+...
+         if( (Modef & pmp1_dlvr_bit) || ( p1_state & End_dlvr))
+         {
+//         goto m_wrg;
+           flag_repeat=1;
+         }
+         else
+           flag_repeat=0;
+
+
+...
+         if( flag_repeat )
+         {
+          if(volume_f !=  vol_f)
+              goto m_wrg;
+          else
+          {
+             flag_ACK_NAK=ACK;
+             flag_SEND=0;
+
+             f_stor_pmp(M_WR,(char *)&flag_ACK_NAK,1);
+
+             (*ff_putch[ComPortPmp1])(flag_ACK_NAK);
+
+        //    f_wr_evt(evt_wrong_start);
+              f_wr_evt(evt_start_f);
+              fl_ok_pmp=1;
+              return;
+          }
+         }
+
+-------------------
+mvd.c
+
+void f_prep_MVD()
+
+was
+
+   case 31:
+      // насос работает,все клапаны закрыты
+      // проверка состояния
+
+      if( f_timer(t_prep_MVD, Tim_Prep1 ) == 0 )
+
+now
+   case 31:
+      // насос работает,все клапаны закрыты
+      // проверка состояния
+
+      if( f_timer(t_prep_MVD, Tim_Prep_ND ) == 0 )
+      {
+        t_prep_MVD1=TimeStamp;
+        break;
+
+      }
+
+      if( f_timer(t_prep_MVD, Tim_Prep1 ) == 0 )
+
+------------------------------------
+
+29 Mar 2011
+
+arch.c
+
+void f_chk_break()
+
+was
+            VolT_id= vVolI - a_str->VolI ;
+now
+            VolT_id=fabs(vVolI-a_str->VolI);
+
+добавлено:
+       MassT_id=a_str->u.fill.Amount;
+       ...
+
+       MassT_id=fabs(vMassI-a_str->MassI);
+       ...
+       MassT_id=a_str->u.fill.Amount;
+
+pmlan.c
+was
+
+                 vol_deliv = *vol_p * 100.+0.5;
+                 ...
+                 mass_deliv = MassT_id * 1000.+0.5;
+now
+                 vol_deliv =fabs( *vol_p) * 100.+0.5;
+                 ...
+                 mass_deliv = fabs(MassT_id) * 1000.+0.5;
+
+===========================
+
+ 12 Apr 2011
+
+ arch.c
+unsigned long int get_vdate(unsigned int seg)
+добавлено:
+ else if( (evt == evt_deb) || (evt == evt_ext_dt1)|| (evt == evt_ext_dt2)  )
+ {
+   nn++;
+   if(nn > 30) goto erase;
+   goto m1;
+ }
+
+ tdat = localtime(&a_str[nn].time);
+
+mvd.c
+void f_prep_MVD()
+ добавлено
+
+          f_wr_dat_st();
+
+ при завершении режимов.
+
+
+void f_MVD_cor()
+ добавлено для
+  (flag_fill_ok == 0)
+
+    if(flag_prok != 0)
+       f_wr_deb();
+---------------------------------------------
+=============
+
+ 01 May 2011
+
+
+ arch.c
+unsigned long int get_vdate(unsigned int seg)
+
+was:
+ return a_str->time;
+now:
+ return a_str[nn].time;
+
+---------------------------------------------
+ 08 May 2011
+ arch.c
+ was:
+
+   case evt_dsp_grk:
+   case evt_kd_grk :
+    s_arch->u.fill.VolT       = Vol_kd;
+    s_arch->u.fill.Amount     = Mass_kd;
+    s_arch->u.fill.UnitPrice  = Vol_grk;
+    s_arch->u.fill.Density    = Mass_grk;
+   break;
+
+ now:
+   case evt_dsp_grk:
+   case evt_kd_grk :
+    s_arch->u.fill.VolT       = Vol_kd;
+    s_arch->u.fill.Amount     = Mass_kd;
+//  s_arch->u.fill.UnitPrice  = Vol_grk;
+//  s_arch->u.fill.Density    = Mass_grk;
+    s_arch->u.fill.UnitPrice  = s_MVD[0].VolI+Vol_kd;
+    s_arch->u.fill.Density    = s_MVD[0].MassI+Mass_kd;
+   break;
+
+   ---------------------------------
+ agzs.c
+
+ was:
+  else if(t.day != day_c)
+  {
+    day_c=t.day;
+    f_wr_evt(evt_dsp_grk);
+  }
+ now:
+  else if(t.day != day_c)
+  {
+    day_c=t.day;
+    f_wr_evt(evt_dsp_grk);
+    f_wr_evt(evt_ext_dt1);
+    f_wr_evt(evt_ext_dt2);
+  }
+
+---------------------------------------------
+ 31 May 2011
+
+ pmlan.c
+
+int f_intr_pmp1()
+
+ was:
+
+         if( flag_repeat )
+         {
+          if(volume_f !=  vol_f)
+              goto m_wrg;
+          else
+          {
+             flag_ACK_NAK=ACK;
+             flag_SEND=0;
+
+ now:
+         if( flag_repeat )
+         {
+       //   if(volume_f !=  vol_f)
+       //       goto m_wrg;
+       //   else
+          {
+             flag_ACK_NAK=ACK;
+             flag_SEND=0;
+
+---------------------------------------------
+mvd.c
+void f_MVD_cor()
+
+добавлен останов счета псле отпуска
+
+  switch (cl_MVD_sw)
+   {
+    case 0:
+
+       if( fabs(s_MVD[0].FlowM) > F_Dns_off_DLV)
+             f_icp_errS(DNS_not_off);
+
+       // // Stop totalizers
+        MVD_fn[0]=MVD_WR_C;
+        s_MVD[0].r_addr=2; // Stop totalizers
+        s_MVD[0].i=0;
+
+        cl_MVD_sw=1;
+        t_prep_MVD=TimeStamp;
+//        printf("\n\r0");
+        return;
+
+    case 1:
+       // установка значения среза объемного расхода для режима ожидания
+        MVD_fn[0]=MVD_WR_F;
+        s_MVD[0].r_addr=197; // Cuttoff for volume flow
+        s_MVD[0].f=dens_cutoff1;
+
+        t_prep_MVD=TimeStamp;
+//        printf("\n\r1");
+        cl_MVD_sw=2;
+        return;
+    case 2:
+
+       // установка значения среза массового расхода для режима ожидания
+        MVD_fn[0]=MVD_WR_F;
+        s_MVD[0].r_addr=195; // Cuttoff for mass flow
+        s_MVD[0].f=dens_cutoff;
+
+        t_prep_MVD=TimeStamp;
+//        printf("\n\r1");
+        cl_MVD_sw=3;
+        return;
+
+    case 3:
+//        printf("\n\r2");
+        cl_MVD_sw=10;
+        fl_VI=0;
+        fl_MI=0;
+        return;
+
+    default:
+        return;
+   }
+
+---------------------------------------------
+11 Jun 2011
+pmlan.c
+
+was:
+                 vol_deliv =fabs( *vol_p) * 100.+0.5;
+
+                 ...
+
+                 mass_deliv = fabs(MassT_id) * 1000.+0.5;
+
+now:
+
+  //             vol_deliv =fabs( *vol_p) * 100.+0.5;
+                 vol_deliv = *vol_p * 100.+0.5;
+                 if(vol_deliv < 0) vol_deliv=0;
+                 ...
+
+//               mass_deliv = fabs(MassT_id) * 1000.+0.5;
+                 mass_deliv = (MassT_id) * 1000.+0.5;
+                 if(mass_deliv < 0) mass_deliv=0;
+
+---------------------------------------------
+
+'E'
+was:
+         if( flag_repeat )
+         {
+       //   if(volume_f !=  vol_f)
+       //       goto m_wrg;
+       //   else
+          {
+
+now:
+
+         if( flag_repeat )
+         {
+            if((volume_f !=  vol_f) && (volume_f != 0))
+                goto m_wrg;
+            else
+          {
+=========================
+15 Jun 2011
+
+dos_win.c
+added:
+int fl_ch_out=0;
+
+int f_menu_MMI()
+added
+
+    case 25: // отображение дискретных входов - выходов
+
+       if((key==ESC)||(key==ENTER))
+       {
+-->>       f_wr_evt(evt_ch_oute);
+           sw_dns=-2;
+           goto m0_f1;
+       }
+...
+       if(fl_ch_out!=0)
+       {
+        fl_ch_out=0;
+        chg_new= OUT_VAR;
+        chg_nn_par=Par_OUT;
+        f_wr_evt(evt_chg_param);
+       }
+
+
+=========================
+
+16 Jun 2011
+
+ pmlan.c
+
+        if  (intrpr.wrd[0]=='E')
+        {   //'E ' Credit sending message
+...
+was:
+          if((volume_f !=  vol_f) && (volume_f != 0))
+              goto m_wrg;
+
+now:
+
+//        if((volume_f !=  vol_f) && (volume_f != 0))
+          if(volume_f !=  vol_f)
+              goto m_wrg;
+
+
+=========================
+27 Jun 2011
+arch.c
+
+void f_chk_break()
+
+was:
+m_rev:
+    ...
+    summ_v_id = a_str->u.fill.Amount;
+
+now:
+
+m_rev:
+    ...
+     MassT_id=a_str->u.fill.Amount;
+     VolT_id=((long int)(VolT_id * 100.+0.5));
+     VolT_id *= 0.01;
+
+     summ_v_id=VolT_id*cost_v;
+
+     summ_v_id=f_round(summ_v_id);
+
+
+was:
+   case evt_brk:
+    s_arch->u.fill.VolT       = VolT_id;
+    s_arch->u.fill.Amount     = summ_v_id;
+    s_arch->u.fill.UnitPrice  = cost_v;
+    s_arch->u.fill.Density    = Dens0;
+    s_arch->u.fill.Temp       = -N_rev;
+
+now:
+   case evt_brk:
+    s_arch->u.fill.VolT       = VolT_id;
+    s_arch->u.fill.Amount     = MassT_id;
+//  s_arch->u.fill.Amount     = summ_v_id;
+    s_arch->u.fill.UnitPrice  = cost_v;
+    s_arch->u.fill.Density    = Dens0;
+    s_arch->u.fill.Temp       = -N_rev;
+
+              break;
+
+was:
+
+   case evt_t_off:
+   ...
+ o.c[0]= ReadNVRAM( nr_m0 );
+ o.c[1]= ReadNVRAM( nr_m1 );
+ o.c[2]= ReadNVRAM( nr_m2 );
+ o.c[3]= ReadNVRAM( nr_m3 );
+ s_arch->MassI  = o.f;
+ vMassI=0.f;    <<---------
+
+ now:
+
+   case evt_t_off:
+   ...
+
+ o.c[0]= ReadNVRAM( nr_m0 );
+ o.c[1]= ReadNVRAM( nr_m1 );
+ o.c[2]= ReadNVRAM( nr_m2 );
+ o.c[3]= ReadNVRAM( nr_m3 );
+ s_arch->MassI  = o.f;
+ vMassI=o.f;
+
+23.08.11
+mvd.c
+изменено f_prep_mvd()
+
+
+pmlan.c
+
+//  добавлено
+//в 'E'
+//  p1_state &= ~Dlvr_rqst;  // ZZZZZ
+//
+
+31.08.11
+mvd.c
+f_gun()
+
+ добавлено:
+          if( (Modef & pmp1_dlvr_bit) || ( p1_state & End_dlvr))  goto m0;
+
+ перед
+          p1_state |= Dlvr_rqst;
+
+----------------------------
+09 Sep 2011
+
+Добавлено вычисление  Message-Digest5
+для 2-го файла в корневом сегменте I7188XA
+
+добавлены файлы md5c.c, md5.h
+добавлено в host.c
+
+//---------------------------------
+      if (!strcmp(intrpr.wrd,"MD5" ))
+        {   //'MD5'
+          f_md5(0);
+          goto fin;
+        }
+//---------------------------------
+
+добавлено в dos_win.c
+
+long int tm_md=0;
+...
+       else if(key== '1') // 8 Версия sw
+       {
+
+         SetDisplayPage(EmptPage);
+         f_clr_scr_MMI();
+
+      MmiGotoxy(0,0);   MmiPrintf("   VER %s",sw_ver);
+      MmiGotoxy(0,2);   MmiPrintf("   MD5 counting ...");
+      MmiGotoxy(0,6);   MmiPuts(" ESC   - возврат в меню");
+         tm_md=TimeStamp;
+         sw_mmi=271;
+         break;
+       }
+...
+    case 271:/* ожидание нажатия ESC,Enter */
+         if((key==ESC)||(key==ENTER)  )
+         {
+           goto m0_f1;
+         }
+         if( (f_timer(tm_md,(long int)1000 )) | fl_md_fst )
+         {
+           f_md5(1);
+           sw_mmi=180;
+         }
+         break;
+-----------------------------------
+29 Sep 2011
+icp.c
+
+void f_cl_error()
+was:
+  if(FL_err)
+    flag_fst_pmp1=1;
+
+now:
+  if(FL_err)
+  {
+    flag_fst_pmp1=1;
+  }
+    if( (Modef & pmp1_dlvr_bit) || ( p1_state & End_dlvr));
+    else
+    {
+       VolT_id   = 0;
+       MassT_id=0;
+       summ_v_id=0;
+
+       if(cost_v <=0)
+       {
+         cost_v=1;
+       }
+       p1_state |= End_dlvr;
+    }
+
+-----
+
+
+agzs.c
+main()
+
+was:
+  f_chk_break();
+
+  RestoreCom(4);
+
+
+now:
+
+  f_chk_break();
+
+  if (p1_state & End_dlvr);
+  else
+  {
+     VolT_id   = 0;
+     MassT_id=0;
+     summ_v_id=0;
+
+     if(cost_v <=0)
+     {
+       cost_v=1;
+     }
+
+     p1_state |= End_dlvr;
+     n_msg_t='1';
+  }
+
+  RestoreCom(4);
+
+-----------------------------------
+30 Sep 2011
+
+mvd.c
+void f_prep_MVD()
+was:
+           case -1: // ошибка при прокачке
+m_err:
+              f_icp_errS(No_liq_err);
+              st_MVD_sw=-1;
+//  printf("=V=");
+              ff_serv_N=NULL;
+              f_set_RQ(0);
+              return;
+
+now:
+
+           case -1: // ошибка при прокачке
+m_err:
+              f_icp_errS(No_liq_err);
+              st_MVD_sw=-1;
+              Modef &= ~pmp1_dlvr_bit;
+              VolT_id   = 0;
+              MassT_id=0;
+              summ_v_id=0;
+              p1_state |= End_dlvr;
+
+//  printf("=V=");
+              ff_serv_N=NULL;
+              f_set_RQ(0);
+              return;
+
+icp.c
+
+void f_cl_error()
+now:
+
+  FL_err=0;
+
+    if(  p1_state & End_dlvr);
+    else
+    {
+       VolT_id   = 0;
+       MassT_id=0;
+       summ_v_id=0;
+
+       if(cost_v <=0)
+       {
+         cost_v=1;
+       }
+       p1_state |= End_dlvr;
+    }
+  Modef &= ~pmp1_dlvr_bit;
+
+
+---------------------------
+22 Nov 2011
+
+DNM - добавлен 3-й параметр - номер колонки (0,1)
+
+---------------------------
+
+03 Dec 2011
+
+avt_ctrl.c
+was:
+    if( (Out_en_r & RCVL) == 0 )
+    { // запрещение контроля останова потока
+       flag_nstg=0;
+       time_stg_ctrl=TimeStamp;
+       time_stg_ctrl0=TimeStamp;
+    }
+
+now:
+    if( (Out_en_r & RCVL) == 0 )
+    { // запрещение контроля останова потока
+       flag_nstg=0;
+       time_stg_ctrl=TimeStamp;
+       time_stg_ctrl0=TimeStamp;
+       time_beg_fill=TimeStamp;
+    }
+
+
+dos_win.c
+was:
+    if(itmp & No_flow )
+    {
+MmiGotoxy(0,i1++); MmiPuts("!Предельный уровень");
+    if(i1 >= n_mmi_str) return;
+    }
+now:
+    if(itmp & LVL_sb )
+    {
+MmiGotoxy(0,i1++); MmiPuts("!Предельный уровень");
+    if(i1 >= n_mmi_str) return;
+    }
+
+---------------------------
+mvd.c
+
+удалена из инициализации запись коррекции объема и массы для MVD ЖФ.
+
+void f_init_MVD(int ii)
+was:
+   case 82:
+       // Множитель массы
+      if(ii > 0)
+      {
+        MVD_fl[ii]=55;
+        break;
+      }
+
+now:
+   case 82:
+       // Множитель массы
+//    if(ii > 0)
+      {
+        MVD_fl[ii]=55;
+        break;
+      }
+
+-----------
+void  f_wr_deb()
+was:
+void  f_wr_deb()
+{ // записывает данные о процессе в журнал
+ for( i_deb_s=0; i_deb_s < debs_ptr; i_deb_s++ )
+ {
+    f_wr_evt(evt_deb);
+ }
+}
+
+now:
+void  f_wr_deb()
+{ // записывает данные о процессе в журнал
+
+ if(ex_p_d==0) return;
+
+ for( i_deb_s=0; i_deb_s < debs_ptr; i_deb_s++ )
+ {
+    f_wr_evt(evt_deb);
+ }
+}
+
+---------------------------
+avt_ctrl.c
+
+int f_rcv_liq(int key)
+
+was:
+...
+ // запись коррекции массы и объема для расходомера ЖФ
+   case  2:
+
+   ltmp=TimeStamp+5000;
+   LIn[0].time_stamp_pool=ltmp;
+   MVD[0].time_stamp_pool=ltmp;
+   MVD[1].time_stamp_pool=ltmp;
+
+ // запись коррекции массы для расходомера ЖФ
+
+ //
+ MVD_Rqst_T[0].answ_com=f_MVD_rd_t;
+ MVD_Rqst_T[0].answ_flt=f_MVD_rd_t;
+ time_t_snd=TimeStamp;
+
+                // Множитель массы
+   MVD_t_rslt[0]=0;
+   if( f_MVD_WR((int)0,(int)MVD_WR_F,(int) 279,(int)0,(long int) 0,(float) M_fct[0]) == 0)
+   { // ошибка при отправке посылки MVD
+
+    if(Flag_check == 0)
+            goto m_e1;
+   }
+   sw_dlv_liq=21;
+   break;
+
+
+now:
+ // запись коррекции массы и объема для расходомера ЖФ
+   case  2:
+
+   ltmp=TimeStamp+5000;
+   LIn[0].time_stamp_pool=ltmp;
+   MVD[0].time_stamp_pool=ltmp;
+   MVD[1].time_stamp_pool=ltmp;
+
+ // запись коррекции массы для расходомера ЖФ
+
+ //
+ MVD_Rqst_T[0].answ_com=f_MVD_rd_t;
+ MVD_Rqst_T[0].answ_flt=f_MVD_rd_t;
+ time_t_snd=TimeStamp;
+
+                // Множитель массы
+/*
+   MVD_t_rslt[0]=0;
+   if( f_MVD_WR((int)0,(int)MVD_WR_F,(int) 279,(int)0,(long int) 0,(float) M_fct[0]) == 0)
+   { // ошибка при отправке посылки MVD
+
+    if(Flag_check == 0)
+            goto m_e1;
+   }
+   sw_dlv_liq=21;
+*/
+   sw_dlv_liq=3;
+   break;
+//----------------------------------
+
+---------------------------
+08 Dec 2011
+
+mvd.c
+
+void f_MVD_rd_t(int ii)
+was:
+m_err:
+ MVD_t_err[nn]++;
+
+ if(MVD_t_err[nn]>=MVD_max_t_err)
+ {
+   MVD_t_err[nn]=MVD_max_t_err;
+   f_icp_error(&MVD[nn],WR_ERR );
+ }
+ f_queue_free(ii,&MVD_Rqst_T[nn]);
+
+ MVD_Rqst_T[ii].time_stamp=TimeStamp;
+ MVD[ii].n_transaction++;
+ f_queue_put(MVD[ii].port, &MVD_Rqst_T[ii]) ;
+}
+
+now:
+m_err:
+ MVD_t_err[nn]++;
+
+ f_queue_free(ii,&MVD_Rqst_T[nn]);
+ if(MVD_t_err[nn]>=MVD_max_t_err)
+ {
+   MVD_t_err[nn]=MVD_max_t_err;
+   f_icp_error(&MVD[nn],WR_ERR );
+ }
+ else
+ {
+  MVD_Rqst_T[nn].time_stamp=TimeStamp;
+  f_queue_put(ii, &MVD_Rqst_T[nn]) ;
+ }
+  MVD[nn].n_transaction++;
+}
+
+-------------
+agzs.c
+
+добавлено:
+
+  list1_dsr,
+  30,           // Тип изм.плотн.
+  &dnc_mode,
+  0,
+  1,
+  T_INT,
+/*----------------*/
+  list1_dsr,
+  31,          // Кол-во резер-в
+  &Tank_nn,
+  1,
+  3,
+  T_INT,
+/*----------------*/
+  list1_dsr,
+  32,           // Тип колонки(0,1)
+  &F_GR2,
+  0,
+  1,
+  T_INT,
+/*----------------*/
+
+-----------------------------
+05 Jan 2012
+
+host.c
+
+ p2.DNM  - режим управления розеткой для насоса газовоза
+        1 - вкл/выкл розетку при отсекании дозы
+        0 - не управлять розеткой ( откл.только по переполнению)
+
+struct dis_set  ds_dnm[]=
+{
+...
+//----------------------
+  &Socket_mode,
+  0,
+  1,
+  T_INT,
+//----------------------
+...
+};
+//----------------------
+-----------------------------------
+eee.c
+struct eee_dat EE_Dat[]=
+{
+...
+add:
+&Socket_mode, sizeof( Socket_mode),
+------------
+
+avt_ctrl.c
+
+was:
+
+//---------------------------
+void f_out_var_a()
+{
+ if( OUT_VAR & (OUT10 | OUT11) ) OUT_VAR_a=0;
+ else
+     OUT_VAR_a = OUT7;
+}
+//---------------------------
+
+now:
+
+int Socket_mode=1;
+
+void f_out_var_a()
+{
+ if(Socket_mode)
+   if( OUT_VAR & (OUT10 | OUT11) ) OUT_VAR_a=0;
+   else
+     OUT_VAR_a = OUT7;
+ else
+     OUT_VAR_a=0;
+}
+------------
+dos_win.c
+
+void f_prn_dn()
+now:
+    if(Tank_nn > 2)
+    {
+    MmiGotoxy(0,5);
+            MmiPrintf("V1=%4.0fл   V2=%4.0fл   V3=%4.0fл", s_DGM[0].VolLiq,s_DGM[1].VolLiq,s_DGM[2].VolLiq);
+    }
+    else
+    {
+    MmiGotoxy(0,5);  MmiPrintf("Объем ждк.1  : ");
+    MmiGotoxy(15,5); MmiPrintf("%8.1f л",s_DGM[0].VolLiq);
+    MmiGotoxy(0,6);  MmiPrintf("Объем ждк.2  : ");
+    MmiGotoxy(15,6); MmiPrintf("%8.1f л",s_DGM[1].VolLiq);
+    }
+
+
+int f_menu_MMI()
+...
+   case 201: //  Прием СУГ, выбор режима старта
+   ...
+            MmiGotoxy(0,3);
+             if(Tank_nn > 2)
+               MmiPrintf("V1=%4.0fл   V2=%4.0fл   V3=%4.0fл", s_DGM[0].VolLiq,s_DGM[1].VolLiq,s_DGM[2].VolLiq);
+             else
+               MmiPrintf("V1=%4.0fл  Резервуары  V2=%4.0fл", s_DGM[0].VolLiq,s_DGM[1].VolLiq);
+..
+-----------------------------
+09.01.12
+
+Ошибочная коррекция в Орше = -30л.
+
+mvd.c
+
+void f_MVD_cor()
+
+added:
+
+#define Off_Cor_Min (-0.05)
+#define Off_Cor_Max  (0.5 )
+#define Off_Cor_Dlt  (0.08 )
+
+was:
+m_end:
+...
+
+     if(flow_mom < flow_min_c) goto m_end;
+
+     if(fct_offs != 0)
+       CL_val[1] += fct_offs*offs_cor;
+
+now:
+     if(flow_mom < flow_min_c) goto m_end;
+
+ // 09.01.12
+     if( fabs(offs_cor) > Off_Cor_Dlt) goto m_end;
+
+     if(fct_offs != 0)
+       CL_val[1] += fct_offs * offs_cor;
+...
+
+     if(CL_val[1] < Off_Cor_Min) CL_val[1]=0;
+     if(CL_val[1] > Off_Cor_Max) CL_val[1]=0;
+
+-------------------------
+changed to:
+
+void  f_prep_int_v2()
+was:
+  tt_vol2=tim_snd_MVD+tim_MVD_delay;
+  }
+now:
+  tt_vol2=tim_snd_MVD+tim_MVD_delay;
+  ltmp=TimeStamp-tt_vol2;
+  if( ( ltmp > 5000 ) ||  ( ltmp < 0 ))  tt_vol2=TimeStamp;
+  }
+-------
+void f_prep_int_rcv()
+...
+was:
+  tt_vol2r=tim_snd_MVD+tim_MVD_delay;
+  tt_Mas1r= tim_snd_MVD;
+
+now:
+  tt_vol2r=tim_snd_MVD+tim_MVD_delay;
+
+  ltmp=TimeStamp-tt_vol2r;
+  if( ( ltmp > 5000 ) ||  ( ltmp < 0 ))  tt_vol2r=TimeStamp;
+
+  tt_Mas1r= tim_snd_MVD;
+
+------------------------
+
+11.01.12
+
+avt_ctrl.c
+
+f_rcv_liq(
+...
+case -1:
+
+       if((key==ESC)||(key==ENTER)  )    // переход в меню
+       {
+...
+         sw_dlv_liq=51;
+...
+       }
+       else if (key==Sht_ESC)
+       {  // очистка ошибок
+...
+//        OUT_VAR_a=0;
+//        sw_dlv_liq=-2;
+          return 0;
+...
+       }
+
+-------------------
+22 Feb 2012
+
+agzs.c
+
+int f_cycle_cmn()
+was:
+     if(res_ctr[0] != 0) INP_VAR |= 0x4000;
+     if(res_ctr[1] != 0) INP_VAR |= 0x8000;
+     if(res_ctr[2] != 0) INP_VAR |= 0x2000;
+
+now:
+
+     if(res_ctr[0] != 0) INP_VAR |= 0x8000;
+     if(res_ctr[1] != 0) INP_VAR |= 0x4000;
+     if(res_ctr[2] != 0) INP_VAR |= 0x2000;
+----------------------
+18 Mar 2012
+
+avt_ctrl.c
+
+was:
+
+int f_rcv_liq(int key)
+{
+long int ltmp;
+float ftmp1,ftmp2;
+
+  f_out_var_a();
+  if(Flag_check == 0)
+    if((FL_err) && (sw_dlv_liq != -1) )
+    {
+
+now:
+
+int f_rcv_liq(int key)
+{
+long int ltmp;
+float ftmp1,ftmp2;
+
+  f_out_var_a();
+  if(Flag_check == 0)
+    if((FL_err) && (sw_dlv_liq != -1)&& (sw_dlv_liq != 51))
+    {
+
+
+--------------------
+15 Apr 2012
+
+mvd.h
+added:
+
+ // симуляция MVD,   0 - нормальная работа
+#define SIM0 (1)
+
+mvd.c
+----------------
+
+void f_MVD_cor_rcv()
+
+-----------
+was:
+    if( f_timer(tm_mvd_p,t_mvd_cor-1000 )==0 )
+now:
+//  if( f_timer(tm_mvd_p,t_mvd_cor-1000 )==0 )
+  if( f_timer(tm_mvd_p,100 )==0 )
+-----------
+was:
+    case 3:
+
+       if( f_timer(t_MVD_flg,t_mvd_cor )==0 )
+       {
+        fl_VI=0;
+        fl_MI=0;
+        return;
+       }
+       if((fl_VI==0) || (fl_MI==0))
+       {
+       }
+       else
+
+       {
+now:
+    case 3:
+   /*
+       if( f_timer(t_MVD_flg,t_mvd_cor )==0 )
+       {
+        fl_VI=0;
+        fl_MI=0;
+        return;
+       }
+
+       if((fl_VI==0) || (fl_MI==0))
+       {
+       }
+       else
+   */
+
+       {
+-------
+was:
+     offs_cor=(vol2r-dose_dlvr);
+now:
+     offs_cor=(vol2r-dose_dlvr1);
+
+added:
+
+#define max_cor_rcv 20
+#define min_cor_rcv -20
+#define d_max_cor_rcv  20
+
+    if( fabs(offs_cor) > d_max_cor_rcv) return;
+
+    if(CL_valR[1] < min_cor_rcv) CL_valR[1]=0;
+    if(CL_valR[1] > max_cor_rcv ) CL_valR[1]=2;
+
+----------------
+int f_MVD_WR(int ii,int fn,int addr,int i_val,long int l_val,float f_val)
+
+was
+ if(MVD[ii].status == 0) return 0;
+now
+#if(SIM0 != 0)
+ if(MVD[ii].status == 0) return 1;
+#else
+ if(MVD[ii].status == 0) return 0;
+#endif
+------------------
+
+added:
+
+float Sim_MassT   = 0.0187;
+float Sim_Dens    = 550;
+float Sim_Temp    =  23.4;
+float Sim_MassI   =  12345;
+float Sim_VolI    =  23456 ;
+float Sim_FlowM   = 0.04;
+float Sim_VolT    = 0.023;
+int   Sim_reg_err = 0;
+
+void f_sim_MVD0()
+...
+
+----------------------
+avt_ctrl.c
+
+char list_avt[][31]={
+
+added:
+"        Выход в меню          ",//20
+
+
+added:
+
+float dose_dlvr1=0;
+
+------
+int f_rcv_liq(int key)
+
+ -------
+   case  2:
+
+added:
+   dose_dlvr1=dose_dlvr;
+   offs_cor=-1000;
+
+ -------
+   case  50:
+   was:
+
+         MmiGotoxy(0,0); MmiPuts(list_avt[12]);
+         MmiGotoxy(9,0); MmiPuts("Выход в меню");
+   now:
+         MmiGotoxy(0,0); MmiPuts(list_avt[20]);
+
+   ...
+   added:
+
+       if( (flag_fill_ok == 1) && ( offs_cor == -1000 ))
+         if( f_timer(t_dose,t_mvd_cor ) )
+         {
+           offs_cor=(vol2r-dose_dlvr1);
+         }
+
+
+ -------
+   case  51:
+...
+was:
+
+         MmiGotoxy(17,0);   MmiPrintf("%ld",(TimeStamp-time_t_snd)/1000  );
+now
+         MmiGotoxy(0 ,0);   MmiPrintf("%ld",(TimeStamp-time_t_snd)/1000  );
+------
+
+mfc5:
+...
+added:
+     Sim_MassT=0;
+     Sim_VolT=0;
+
+----
+    case -1:
+
+     MmiGotoxy(0,0); MmiPuts(list_avt[20]);
+   ...
+ was:
+
+       else if (key==Sht_ESC)
+        {  // очистка ошибок
+          f_clr_scr_MMI();
+          SetDisplayPage(23);
+
+ now:
+       else if (key==Sht_ESC)
+        {  // очистка ошибок
+          f_clr_scr_MMI();
+//        SetDisplayPage(23);  <<<-------------
+
+------
+added:
+long int t_dose=0;
+
+int f_ctrl_rcv()
+ вместо  k_vol должен быть k_volr
+------
+закомментировано:
+
+/*
+  if(flag_pool==1)
+   if( (ftmp-k_volr*CL_T3 )<= 0)
+    {
+     flag_pool=0;
+     ltmp=TimeStamp+CL_T4;
+//   I7060[0].time_stamp_pool=ltmp;
+//   I7060[1].time_stamp_pool=ltmp;
+     I7017C[0].time_stamp_pool=ltmp;
+     LIn[0].time_stamp_pool=ltmp;
+     MMI.time_stamp_pool=ltmp;
+//   WDOG[0].time_stamp_pool=ltmp;
+    }
+*/
+----------
+was:
+
+  if( (ftmp-k_volr*CL_T2R )> CL_valR[1])
+      itmp |= OUT9;
+now:
+  if( (ftmp-k_volr*CL_T2R )> CL_valR[1])
+  {
+   t_dose=TimeStamp;
+   itmp |= OUT9;
+  }
+------
+
+----------------------
+avt_ctrl.h
+added:
+extern float dose_dlvr1;
+extern long int t_dose;
+----------------------
+agzs.c
+
+void f_rd_cor()
+added:
+
+   if(CL_valR[1] < -40) CL_valR[1]= 0;
+   if(CL_valR[1] >  40) CL_valR[1]= 0;
+
+----------------------
+24.06.12
+avt_ctrl.c
+added
+#define MVD_DNS   2    // 0 - система с 3-мя расходомерами
+                       // 2 - система с 1 расходомером
+
+int f_dens_m(int key)
+
+ 0   изменено на  MVD_DNS
+
+mvd.c
+added
+#define MVD_FLOW  2  // 0 - система с 3-мя расходомерами
+                     // 2 - система с 1 расходомером
+
+void f_flow_up()
+ 0   изменено на  MVD_FLOW
+
+void f_MVD_rd(int ii)
+
+added
+
+       if(MVD_FLOW == 2)
+       {
+        //рассчитывает падение давления вследствие скорости
+          s_MVD[2].PressB= FctBern*s_MVD[2].FlowM*s_MVD[2].FlowM/s_MVD[2].Dens;
+
+        //рассчитывает s_MVD[2].Compos и s_MVD[2].PressG
+          f_get_pressDT(s_MVD[2].Dens,s_MVD[2].Temp);
+       }
+
+----------------------
+16 Jul 2015
+
+mvd.c
+
+
+void f_prep_MVD()
+
+was:
+
+    case 2:
+       // ожидание подтверждения включения насоса
+
+          itmp= f_chk_flup();
+
+now:
+
+    case 2:
+       // ожидание подтверждения включения насоса
+
+
+          if( ( INP_VARi & INP1 ) == 0)
+          {   // исчез рычаг при старте отпуска
+          //???
+          //   f_icp_errS(No_liq_err);
+            goto m_err1; // останов запуска
+          }
+          itmp= f_chk_flup();
+
+-------------------------
+
+was:
+    case 3:// разрешение счета расходомера
+
+      // обнуление Mass_Total и Volume_Total
+
+          flag_rcv=0;
+now:
+    case 3:// разрешение счета расходомера
+
+      // обнуление Mass_Total и Volume_Total
+
+
+          if(MVD_fn[GR] != 0)
+          {
+            if( f_timer(t_prep_MVD,(long int)5000L ) == 0 ) return;
+            f_icp_errS(No_F_dat_err);
+            st_MVD_sw=60;
+            goto m_err1;
+          }
+
+
+          flag_rcv=0;
+------
+ also
+ case 4:
+ case 5:
+ case 6:
+
+
+void f_flow_up()
+
+was:
+
+    case 0:  // Stop totalizers
+
+            MVD_fn[MVD_FLOW]=MVD_WR_C;
+
+now:
+
+    case 0:  // Stop totalizers
+
+  if(MVD_fn[MVD_FLOW] != 0)
+  {
+    if( f_timer(t_MVD_pmp,(long int)5000L ) == 0 ) return;
+    f_icp_errS(No_F_dat_err);
+    FL_UP_sw=60;
+    return;
+  }
+
+            MVD_fn[MVD_FLOW]=MVD_WR_C;
+----------
+also
+
+    case 1:
+
+    case 3:
+============
+
+agzs.c
+changed to:
+char sw_ver[20]="G1.46 16 Jul 2015";
+--------
+
+02 Sep 2018
+
+
+Добавлена поддержка большого дисплея.
+
+Не нужно устанавливать выходы в AG1.
+
+avt_ctrl.h
+
+#define  bit_10p  (0x2000)
+#define  bit_90p  (0x4000)
+#define  bit_85p  (0x8000)
+
+
+avt_ctrl.c
+
+changed:
+void f_set_o67()
+{// устанавливает OUT_VAR  в соответствии с i_LVL;
+
+   OUT_VAR &= ~(   OUT6 | OUT7 | OUT12 );
+
+if (i_LVL & bit_10p) OUT_VAR |= OUT6;
+if (i_LVL & bit_90p) OUT_VAR |= OUT7;
+
+if ( ( (i_LVL & bit_85p) != 0 ) && ( (INP_VARi & L85) != 0  )  )
+   OUT_VAR |= OUT12;
+}
+
+//---------------------------
+
+27 MAY 2020 YN
+
+Добавлена страница проверки расчета фаза
+
+изменения можно найти по 27.05.2020 YN
+
+-----------

@@ -46,6 +46,4 @@
 #include "lin.h"
 #include "md5.h"
 
-
-
-
+#include "Vercalc.h"

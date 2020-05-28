@@ -7,5 +7,3 @@
 #include "pmlan.c"
 #include "prop_but.c"
 #include "lin.c"
-
-
