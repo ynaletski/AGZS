@@ -9,7 +9,7 @@
 
 int F_GR2=0; // 0 - master
 
-char sw_ver[20]="G1.47 05 Sep 2018";
+char sw_ver[20]="G1.48 27 May 2020";
 
 unsigned long ComBaud[5]={9600,9600,9600,9600,115200};
 int Com_lgth[5]={8,8,8,8,8};
