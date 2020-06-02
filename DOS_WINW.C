@@ -4628,10 +4628,10 @@ m_m4:
           MmiGotoxy(13, 6);     MmiPrintf(" %8.1f кг/м3",s_CALC.DensLiqPhase);
 
           MmiGotoxy(0,7);    MmiPrintf("6.Давл. р-ра: ");
-          MmiGotoxy(13, 7);     MmiPrintf(" %8.1f МПа",s_CALC.PressTank);
+          MmiGotoxy(13, 7);     MmiPrintf(" %8.3f МПа",s_CALC.PressTank);
 
           MmiGotoxy(0,9);    MmiPrintf("Давл. н.пара: ");
-          MmiGotoxy(13, 9);     MmiPrintf(" %8.1f МПа",s_CALC.PressGasPhase);
+          MmiGotoxy(13, 9);     MmiPrintf(" %8.3f МПа",s_CALC.PressGasPhase);
 
           MmiGotoxy(0,10);    MmiPrintf("Плотн.пар.ф.:");
           MmiGotoxy(13, 10);     MmiPrintf(" %8.1f кг/м3",s_CALC.DensGasPhase);
