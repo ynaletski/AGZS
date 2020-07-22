@@ -1,11 +1,11 @@
 struct s_ver_calc s_CALC=
 {
     8000,   // float VolTank;
-    5432,   // float VolLiqPhase;
-    24.4,   // float TempLiqPhase;
-    24.4,   // float TempGasPhase;
-    530,    // float DensLiqPhase;
-    0.6,  // float PressTank;
+    5500,   // float VolLiqPhase;
+    20,   // float TempLiqPhase;
+    20,   // float TempGasPhase;
+    550,    // float DensLiqPhase;
+    0.2,  // float PressTank;
     0.,     // float DensGasPhase;
     0.,     // float VolGasPhase;
     0.,     // float MassGasPhase;

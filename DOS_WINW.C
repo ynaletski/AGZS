@@ -4634,19 +4634,19 @@ m_m4:
           MmiGotoxy(13, 9);     MmiPrintf(" %8.3f МПа",s_CALC.PressGasPhase);
 
           MmiGotoxy(0,10);    MmiPrintf("Плотн.пар.ф.:");
-          MmiGotoxy(13, 10);     MmiPrintf(" %8.1f кг/м3",s_CALC.DensGasPhase);
+          MmiGotoxy(13, 10);     MmiPrintf(" %8.3f кг/м3",s_CALC.DensGasPhase);
 
           MmiGotoxy(0,11);   MmiPrintf("Объем пар.ф.:");
-          MmiGotoxy(13, 11);     MmiPrintf(" %8.1f л",s_CALC.VolGasPhase);
+          MmiGotoxy(13, 11);     MmiPrintf(" %8.3f л",s_CALC.VolGasPhase);
 
           MmiGotoxy(0,12);   MmiPrintf("Масса пар.ф.:");
-          MmiGotoxy(13,12);     MmiPrintf(" %8.1f кг",s_CALC.MassGasPhase);
+          MmiGotoxy(13,12);     MmiPrintf(" %8.3f кг",s_CALC.MassGasPhase);
 
           MmiGotoxy(0,13);   MmiPrintf("Масса ждк.ф.:");
-          MmiGotoxy(13,13);     MmiPrintf(" %8.1f кг",s_CALC.MassLiqPhase);
+          MmiGotoxy(13,13);     MmiPrintf(" %8.3f кг",s_CALC.MassLiqPhase);
 
           MmiGotoxy(0,14);   MmiPrintf("Масса общая :");
-          MmiGotoxy(13,14);     MmiPrintf(" %8.1f кг",(s_CALC.MassGasPhase+s_CALC.MassLiqPhase));
+          MmiGotoxy(13,14);     MmiPrintf(" %8.3f кг",(s_CALC.MassGasPhase+s_CALC.MassLiqPhase));
 
           MmiGotoxy(0,15);      MmiPuts("                 ESC  Возврат ");
           tm_md=TimeStamp;
